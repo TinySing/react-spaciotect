@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import THREE from '../../vendor/three.js';
+import * as THREE from 'three';
 
 const COLORS = { learning: 0xd6dfd8, community: 0xe8dbcc, mixed: 0xd7dfd9, outdoor: 0xa9cdc8, service: 0xd9cd9b, site: 0xf7f8f2, line: 0x798b80 };
 

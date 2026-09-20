@@ -4,7 +4,7 @@
 // while rendering, so only the pure transforms plus the 3D/compass utilities
 // are ported here.
 
-import THREE from '../vendor/three.js';
+import * as THREE from 'three';
 import andersonData, { adapted } from '../adapters/hkSchoolAdapter.js';
 
 export function siteData(option = 'C') {

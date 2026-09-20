@@ -12,6 +12,17 @@ npm run dev
 
 Open `http://127.0.0.1:5173/`.
 
+## Deploy
+
+Vercel is the recommended deployment target because this is a Vite single-page application and it serves route fallbacks automatically.
+
+1. In Vercel, import `TinySing/react-spaciotect` and select the `main` branch.
+2. Use the detected Vite preset: build command `npm run build`, output directory `dist`, Node.js `22`.
+3. Set `VITE_DATA_SOURCE=mock` for the current demonstration data. When the backend is ready, set `VITE_DATA_SOURCE=api` and `VITE_API_BASE_URL=https://your-api-domain`.
+4. Deploy. Direct URLs such as `/studio/massing`, `/studio/rooms`, and `/studio/rendering` will work because `vercel.json` rewrites application routes to `index.html` and the router uses Vite's deployment base path.
+
+For another static host, configure SPA fallback so every unknown application route serves `index.html`.
+
 ## Routes
 
 - `/` Home

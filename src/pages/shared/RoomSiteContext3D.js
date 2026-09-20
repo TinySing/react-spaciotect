@@ -1,4 +1,4 @@
-import THREE from '../../vendor/three.js';
+import * as THREE from 'three';
 
 export function addRoomSiteContext(parent, site, center) {
   if (!site?.site_boundary?.length) return null;

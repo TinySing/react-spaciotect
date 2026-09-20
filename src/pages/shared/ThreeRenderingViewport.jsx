@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import THREE from '../../vendor/three.js';
+import * as THREE from 'three';
 
 function dispose(object) {
   object.traverse(child => {

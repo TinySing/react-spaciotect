@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import THREE from '../../vendor/three.js';
+import * as THREE from 'three';
 import { addRoomSiteContext } from './RoomSiteContext3D';
 
 const COLORS = { learning: 0x91ae99, occupiable: 0x91ae99, circulation: 0xc3a858, community: 0xc18470, administration: 0x789e9f, service: 0xa8a2ad, 'm&e': 0x7b8580 };
