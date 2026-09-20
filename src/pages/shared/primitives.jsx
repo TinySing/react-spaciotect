@@ -6,8 +6,8 @@ export function QuickAction({ icon, title, path }) {
   return <Link className="quick-action" to={path}><Icon name={icon} /><b>{title}</b></Link>;
 }
 
-export function Event({ title, time, children, warning = false }) {
-  return <article className={`event ${warning ? 'warning' : ''}`}><span className="event-dot" /><div><div className="event-head"><b>{title}</b><time>{time}</time></div><p>{children}</p></div></article>;
+export function Event({ title, time, children, warning = false, message = false }) {
+  return <article className={`event ${warning ? 'warning' : ''} ${message ? 'message' : ''}`.trimEnd()}><span className="event-dot" /><div className="event-head"><b>{title}</b><time>{time}</time></div><p>{children}</p></article>;
 }
 
 export function Kpi({ icon, label, value, unit, note }) { return <article className="energy-kpi"><Icon name={icon} /><span>{label}</span><strong>{value}</strong><small>{unit}</small><em>{note}</em></article>; }

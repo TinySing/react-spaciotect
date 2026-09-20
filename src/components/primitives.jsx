@@ -1,14 +1,8 @@
 import React from 'react';
 
-const ICONS = {
-  home: '⌂', folder: '▤', map: '⌖', box: '◇', chart: '▥', file: '▧', search: '⌕', bell: '♢', message: '□',
-  arrow: '→', spark: '✦', school: '⌂', check: '✓', close: '×', chevron: '›', filter: '≡', sliders: '☷', plus: '+',
-  sun: '☼', leaf: '❧', zap: 'ϟ', gauge: '◉', building: '▥', eye: '◉', rotate: '↻', download: '↓', refresh: '↻', layers: '▱', copy: '▣', upload: '♧',
-};
-
-export function Icon({ name, className = '' }) {
-  return <span aria-hidden="true" className={`icon ${className}`}>{ICONS[name] || '•'}</span>;
-}
+// Icon now renders real lucide SVGs (see icons.jsx); the legacy glyph names used
+// across the app resolve through its alias table.
+export { Icon } from './icons.jsx';
 
 export function EmptyState({ title, children }) {
   return <div className="empty-state"><Icon name="file" /><b>{title}</b><span>{children}</span></div>;

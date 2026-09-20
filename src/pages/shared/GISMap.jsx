@@ -17,6 +17,15 @@ const SHAPES = {
   site: [[114.1549, 22.3346], [114.1562, 22.3347], [114.1567, 22.3337], [114.1552, 22.3334]],
 };
 
+// Floating layer chips, exactly as the mockup renders them (icon, label, swatch color).
+const LAYER_CHIPS = [
+  { id: 'ozp', label: 'OZP zones', color: '#e61e2a', icon: 'landmark' },
+  { id: 'height', label: 'Height restriction', color: '#d97706', icon: 'ruler' },
+  { id: 'green', label: 'Green belt', color: '#0e7c55', icon: 'trees' },
+  { id: 'transport', label: 'Transport', color: '#697078', icon: 'train-front' },
+  { id: 'projects', label: 'My projects', color: '#e61e2a', icon: 'map-pin' },
+];
+
 function world(lng, lat, zoom) {
   const size = 256 * 2 ** zoom;
   const x = (lng + 180) / 360 * size;
@@ -35,9 +44,10 @@ function shapePath(points, center, zoom, width, height, close = true) {
   return `${points.map((point, index) => { const projected = mapPoint(point[0], point[1], center, zoom, width, height); return `${index ? 'L' : 'M'}${projected.x.toFixed(1)},${projected.y.toFixed(1)}`; }).join(' ')}${close ? ' Z' : ''}`;
 }
 
-export function GISMap({ layers, selected, search, onSearch, onSelect, onExport }) {
+export function GISMap({ layers, selected, onToggleLayer, onSelect }) {
   const mapRef = useRef(null);
   const dragRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
   const [center, setCenter] = useState({ lng: 114.1559, lat: 22.3341 });
   const [zoom, setZoom] = useState(14);
   const [size, setSize] = useState({ width: 1200, height: 800 });
@@ -67,12 +77,12 @@ export function GISMap({ layers, selected, search, onSearch, onSelect, onExport 
     }
     return next;
   }, [center, size, zoom]);
-  const visibleProjects = PROJECTS.filter(project => !search.trim() || project.name.toLowerCase().includes(search.trim().toLowerCase()));
-  const reset = () => { setCenter({ lng: 114.1559, lat: 22.3341 }); setZoom(14); };
+  const locate = () => { setCenter({ lng: 114.1559, lat: 22.3341 }); setZoom(14); };
   const handlePointerDown = event => {
-    if (event.button !== 0 || event.target.closest('button, input')) return;
+    if (event.target.closest('button')) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { x: event.clientX, y: event.clientY, center };
+    setDragging(true);
   };
   const handlePointerMove = event => {
     if (!dragRef.current) return;
@@ -84,16 +94,34 @@ export function GISMap({ layers, selected, search, onSearch, onSelect, onExport 
     const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * nextOrigin.y / sizeAtZoom))) * 180 / Math.PI;
     setCenter({ lng, lat });
   };
+  const endDrag = () => { dragRef.current = null; setDragging(false); };
   const handleWheel = event => {
     event.preventDefault();
     setZoom(value => Math.max(11, Math.min(17, value + (event.deltaY < 0 ? 1 : -1))));
   };
-  return <div ref={mapRef} className="map-panel gis-map" onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={() => { dragRef.current = null; }} onPointerCancel={() => { dragRef.current = null; }} onWheel={handleWheel}>
-    <div className="map-tile-layer">{tiles.map(tile => <img key={`${tile.x}-${tile.y}-${zoom}`} className="map-tile" src={tile.src} alt="" draggable="false" style={{ left: tile.left, top: tile.top }} />)}</div>
-    <div className="map-wash" />
-    <svg className="map-overlay-layer" viewBox={`0 0 ${size.width} ${size.height}`} preserveAspectRatio="none" aria-hidden="true"><path className="map-zone-ozp" d={layers.ozp ? shapePath(SHAPES.ozp, center, zoom, size.width, size.height) : ''} /><path className="map-zone-height" d={layers.height ? shapePath(SHAPES.height, center, zoom, size.width, size.height) : ''} /><path className="map-zone-green" d={layers.green ? shapePath(SHAPES.green, center, zoom, size.width, size.height) : ''} /><path className="map-zone-transport" d={layers.transport ? shapePath(SHAPES.transport, center, zoom, size.width, size.height, false) : ''} /><path className="map-site-pulse" d={shapePath(SHAPES.site, center, zoom, size.width, size.height)} /><path className="map-site-boundary" d={shapePath(SHAPES.site, center, zoom, size.width, size.height)} /></svg>
-    <div className="map-marker-layer">{layers.projects && visibleProjects.map(project => { const point = mapPoint(project.lng, project.lat, center, zoom, size.width, size.height); return <button key={project.id} className={`map-marker ${project.status} ${selected === project.id ? 'selected' : ''}`} style={{ left: point.x, top: point.y }} onClick={event => { event.stopPropagation(); onSelect(project.id); }}><span className="map-pin" /><span className="map-marker-label"><b>{project.name}</b><span>{project.type}</span></span></button>; })}</div>
-    <div className="map-tools"><span className="gis-badge"><Icon name="map" />GIS context</span><input value={search} onChange={event => onSearch(event.target.value)} placeholder="Search site context" aria-label="Search site context" /><button onClick={() => setZoom(value => Math.min(17, value + 1))} aria-label="Zoom in">+</button><button onClick={() => setZoom(value => Math.max(11, value - 1))} aria-label="Zoom out">−</button><button onClick={reset} aria-label="Centre map"><Icon name="map" /></button><button onClick={onExport}><Icon name="download" />Export</button></div>
-    <div className="map-compass">N<br /><b>↑</b></div><span className="map-scale">{zoom >= 15 ? '100 m' : zoom <= 13 ? '500 m' : '250 m'} · HK80</span>
-  </div>;
+  const scaleText = zoom >= 15 ? '100 m' : zoom <= 13 ? '500 m' : '250 m';
+  const sitePath = shapePath(SHAPES.site, center, zoom, size.width, size.height);
+  return <>
+    <div ref={mapRef} className={`map${dragging ? ' dragging' : ''}`} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={endDrag} onPointerCancel={endDrag} onWheel={handleWheel}>
+      <div className="tile-layer">{tiles.map(tile => <img key={`${tile.x}-${tile.y}-${zoom}`} className="tile" src={tile.src} alt="" draggable="false" style={{ left: tile.left, top: tile.top }} />)}</div>
+      <div className="map-wash" />
+      <div className="map-grid" />
+      <svg className="overlay-layer" viewBox={`0 0 ${size.width} ${size.height}`} preserveAspectRatio="none" aria-hidden="true">
+        {layers.ozp && <path className="zone" d={shapePath(SHAPES.ozp, center, zoom, size.width, size.height)} />}
+        {layers.height && <path className="height-zone" d={shapePath(SHAPES.height, center, zoom, size.width, size.height)} />}
+        {layers.green && <path className="greenbelt" d={shapePath(SHAPES.green, center, zoom, size.width, size.height)} />}
+        {layers.transport && <path className="corridor" d={shapePath(SHAPES.transport, center, zoom, size.width, size.height, false)} />}
+        <path className="site-boundary-pulse" d={sitePath} />
+        <path className="site-boundary" d={sitePath} />
+      </svg>
+      <div className="marker-layer">{layers.projects && PROJECTS.map(project => { const point = mapPoint(project.lng, project.lat, center, zoom, size.width, size.height); return <button key={project.id} className={`marker ${project.status}${selected === project.id ? ' selected' : ''}`} style={{ left: point.x, top: point.y }} onClick={event => { event.stopPropagation(); onSelect(project.id); }}><span className="pin" /><span className="marker-label"><b>{project.name}</b><span>{project.type}</span></span></button>; })}</div>
+    </div>
+    <div className="layerbar">{LAYER_CHIPS.map(chip => <button key={chip.id} className={`layer-chip${layers[chip.id] ? ' active' : ''}`} style={{ '--chip-color': chip.color }} onClick={() => onToggleLayer(chip.id)}><span className="swatch" /><Icon name={chip.icon} />{chip.label}</button>)}</div>
+    <div className="zoom-controls">
+      <button title="Zoom in" onClick={() => setZoom(value => Math.min(17, value + 1))}><Icon name="plus" /></button>
+      <button title="Zoom out" onClick={() => setZoom(value => Math.max(11, value - 1))}><Icon name="minus" /></button>
+      <button title="Return to selected site" onClick={locate}><Icon name="crosshair" /></button>
+    </div>
+    <div className="map-status"><span className="scale" /><span>{scaleText}</span><span>HK80 · 835620E · 821430N</span></div>
+  </>;
 }

@@ -37,7 +37,8 @@ function ExtrudedFootprint({ polygon, base, height, color, opacity = 1, selected
 function ContextBlock({ polygon, height }) { return <ExtrudedFootprint polygon={polygon} base={0} height={height} color={COLORS.context} opacity=".25" />; }
 
 export function MassingVisual({ option = 'M4', compact = false, style, visibleLayers, visibleLevels = 6, shadows = true, context = true }) {
-  const site = massingData[option === 'M4' ? 'C' : option === 'M3' ? 'B' : option === 'M2' ? 'A' : 'A'] || massingData.C;
+  const sourceOption = option === 'M4' ? 'C' : option === 'M3' ? 'B' : option === 'M2' || option === 'M1' ? 'A' : option;
+  const site = massingData[sourceOption] || massingData.C;
   const showLayer = name => !visibleLayers || visibleLayers[name] !== false;
   const visualStyle = typeof style === 'string' ? { transform: style } : style;
   const bounds = boundsOf(site);
@@ -54,8 +55,9 @@ export function MassingVisual({ option = 'M4', compact = false, style, visibleLa
   ];
   const entry = asPolygons(site.pedestrian_entrance_lines)[0]?.at(-1) || [5, -47];
   const entryPoint = point(entry[0], entry[1], 0);
-  return <div className={`massing-visual ${compact ? 'compact' : ''} option-${option.toLowerCase()} ${shadows ? '' : 'no-shadows'}`} style={visualStyle} aria-label={`${MASSING_OPTIONS[option]?.title || 'Massing'} preview`}>
-    <svg className="massing-model-svg" viewBox="0 0 760 470" role="img" aria-label={`${MASSING_OPTIONS[option]?.title || 'Massing'} BIM model`}>
+  const title = MASSING_OPTIONS[option]?.title || `OPT-${sourceOption} massing`;
+  return <div className={`massing-visual ${compact ? 'compact' : ''} option-${option.toLowerCase()} ${shadows ? '' : 'no-shadows'}`} style={visualStyle} aria-label={`${title} preview`}>
+    <svg className="massing-model-svg" viewBox="0 0 760 470" role="img" aria-label={`${title} BIM model`}>
       {showLayer('Landscape') && <>
         <polygon className="massing-site-plane" points={polygonPoints([[bounds.minX - 42, bounds.minY - 32], [bounds.maxX + 42, bounds.minY - 32], [bounds.maxX + 42, bounds.maxY + 50], [bounds.minX - 42, bounds.maxY + 50]])} fill={COLORS.site} />
         {asPolygons(site.basketball_court_open_area).map((polygon, index) => <polygon key={`court-${index}`} className="massing-courtyard" points={polygonPoints(polygon, .12)} fill={COLORS.court} />)}

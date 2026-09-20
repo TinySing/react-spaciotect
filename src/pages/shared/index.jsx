@@ -1,10 +1,13 @@
 export { MassingVisual } from './MassingVisual';
-export { RenderingVisual } from './RenderingVisual';
+export { ThreeMassingViewport } from './ThreeMassingViewport';
+export { ThreeRoomStackViewport } from './ThreeRoomStackViewport';
+export { ThreeRoomGraphViewport } from './ThreeRoomGraphViewport';
+export { ThreeRenderingViewport } from './ThreeRenderingViewport';
 export { SiteGraph, NODE_COLORS } from './SiteGraph';
 export { GISMap } from './GISMap';
 export { RoomRelationshipGraph, RoomStackVisual } from './RoomVisuals';
 export { ModelSourcePanel } from './ModelSourcePanel';
-export { EnergyReport, MassingReport, ReportType } from './reports';
+export { EnergyReport, MassingDecisionSheet, MassingReport, ReportType } from './reports';
 export { BarRow, DetailPanel, Event, Kpi, QuickAction, SiteContextPills } from './primitives';
-export { useCanvasNavigation } from './useCanvasNavigation';
-export { downloadSvg } from './downloadSvg';
+export { useCanvasNavigation } from '../../hooks/useCanvasNavigation';
+export { downloadSvg } from '../../utils/downloadSvg';

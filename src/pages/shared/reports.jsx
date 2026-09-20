@@ -4,7 +4,29 @@ import { Icon, useToast } from '../../components';
 import { BarRow, DetailPanel } from './primitives';
 import { MassingVisual } from './MassingVisual';
 
+async function shareReportLink(toast) {
+  try {
+    if (navigator.share) await navigator.share({ title: document.title || 'A.I. SPACIOTECT report', url: window.location.href });
+    else await navigator.clipboard?.writeText(window.location.href);
+    toast('Share link copied');
+    return true;
+  } catch (error) {
+    if (error?.name !== 'AbortError') toast('Unable to share this report from this browser');
+    return false;
+  }
+}
+
 export function ReportType({ icon, title, description, onClick }) { return <button className="report-type-card" onClick={onClick}><span><Icon name={icon} /></span><b>{title}</b><small>{description}</small><em>Open report <Icon name="arrow" /></em></button>; }
+
+export function MassingDecisionSheet({ onExport }) {
+  const [format, setFormat] = useState('A4');
+  const [shared, setShared] = useState(false);
+  const toast = useToast();
+  return <section className={`decision-report-workspace decision-format-${format.toLowerCase()}`}>
+    <header className="decision-report-toolbar"><div><p>SELECTED OPTION OUTPUT</p><h1>Massing decision report</h1><span>OPT-C / U-shaped campus / Generated 09 September 2026</span></div><div className="report-toolbar-actions"><div className="segmented">{['A4', '16:9'].map(value => <button key={value} className={format === value ? 'active' : ''} onClick={() => { setFormat(value); toast(`${value} report view selected`); }}>{value}</button>)}</div><button onClick={async () => { if (await shareReportLink(toast)) setShared(true); }}><Icon name="copy" />{shared ? 'Link copied' : 'Share'}</button><button className="primary-btn" onClick={onExport}><Icon name="download" />Export PDF</button></div></header>
+    <article className="decision-report-sheet"><header className="decision-sheet-head"><div><p>A.I. SPACIOTECT / ARCHITECTURAL SERVICES DEPARTMENT</p><h2>Design decision report</h2></div><div><b>SITE E-2 / ANDERSON ROAD PRIMARY SCHOOL</b><span>OPT-C / U-shaped campus<br />Issue 02 / 09 September 2026</span></div></header><section className="decision-banner"><div><p>DECISION POSITION / MASSING GATE</p><h2>Advance the U-shape into coordinated design.</h2><span>Option C keeps the teaching programme legible around a protected school heart. It is strong enough to progress, but access, structure, environmental performance and accommodation fit still need evidence.</span></div><aside><b>Conditional advance</b><span>Selected for detailed testing<br />Not a planning approval</span></aside></section><section className="decision-evidence"><article className="decision-figure"><header><div><b>Spatial reading</b><span>Site boundary, arrival, courtyard, and massing relationship</span></div><small>01 / evidence view</small></header><MassingVisual option="M4" /><footer><b>Reading: compact teaching bar + two return wings</b><span>Diagrammatic geometry read from the selected option</span></footer></article><article className="decision-reading"><p>ARCHITECTURAL READING</p><h2>A school heart, not just a building plate.</h2><span>The scheme concentrates the classroom cluster along the north edge and turns the return wings inward. That gives arrival, play, and community use a clearer relationship than a single compact block.</span><ol><li><b>01</b><div><strong>Arrival is separated</strong><span>Pedestrian arrival and vehicle / EVA are distinct operational fronts.</span></div></li><li><b>02</b><div><strong>The courtyard is the organiser</strong><span>Shared outdoor space is the visual and social centre.</span></div></li><li><b>03</b><div><strong>Community use stays addressable</strong><span>The hall can be tested as a public-facing edge.</span></div></li></ol></article></section><section className="decision-metrics"><div><span>Total massing GFA</span><b>11,500 m²</b><small>2,900 ground + five upper plates</small></div><div><span>Storeys</span><b>6</b><small>Ground plus five upper levels</small></div><div><span>Ground footprint</span><b>2,900 m²</b><small>U-shaped base including hall wing</small></div><div><span>Stacked height</span><b>23.8 m</b><small>Derived from floor-to-floor profile</small></div></section><section className="decision-bottom"><article><header><b>What the selection means</b><span>02 / narrative</span></header><p>Option C is selected because it gives the brief a strong spatial idea without abandoning a substantial teaching plate. The return wings make the open space visible from within the building, while the higher north bar keeps the school compact.</p><div><b>01</b><span>Protect the courtyard</span><b>02</b><span>Coordinate the edge</span><b>03</b><span>Test the stack</span></div></article><article><header><b>Option comparison</b><span>03 / selection basis</span></header>{[['Option A / L', 86], ['Option B / wings', 86], ['Option C / U', 100]].map(([name, value]) => <div className={value === 100 ? 'selected' : ''} key={name}><span>{name}</span><i><b style={{ width: `${value}%` }} /></i><strong>{value === 100 ? '2,900' : '2,500'} m²</strong></div>)}</article></section><footer className="decision-sheet-foot"><span><b>Prepared for design coordination</b> / Project 8591 / Site E-2 Anderson Road</span><span>Issue 02 / 09 September 2026 / preliminary and non-statutory</span></footer></article>
+  </section>;
+}
 
 export function MassingReport({ onExport }) {
   const [format, setFormat] = useState('A4');

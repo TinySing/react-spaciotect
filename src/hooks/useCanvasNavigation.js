@@ -4,7 +4,7 @@ export function useCanvasNavigation({ minScale = .7, maxScale = 1.8 } = {}) {
   const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
   const dragRef = useRef(null);
   const onPointerDown = event => {
-    if (event.button !== 0 || event.target.closest('button, [role="button"], input, select, textarea')) return;
+    if (event.button !== 0 || event.target.closest('button, [role="button"], input, select, textarea, canvas')) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { x: event.clientX, y: event.clientY, viewport };
   };

@@ -1,30 +1,106 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MASSING_OPTIONS } from '../../data';
 import { Icon, StudioFrame, useToast } from '../../components';
-import { MassingVisual, ModelSourcePanel, SiteContextPills, downloadSvg } from '../shared';
-import { MASSING_TOOLS, MODEL_FILES } from './constants';
+import { useStudioModel } from '../../hooks/useStudioModel';
+import { ModelSourcePanel, ThreeMassingViewport } from '../shared';
+import { MODEL_FILES } from './constants';
+
+const STUDIO_OPTIONS = {
+  A: { title: 'L-shaped school', descriptor: 'Site E-2 · Preliminary massing', storeys: 6, height: '23.8 m', allocated: 8500, site: 7031, ground: 2540, upper: 5960, outside: 4491 },
+  B: { title: 'Parallel wings school', descriptor: 'Site E-2 · Preliminary massing', storeys: 6, height: '23.8 m', allocated: 8820, site: 7031, ground: 2580, upper: 6240, outside: 4451 },
+  C: { title: 'Courtyard school', descriptor: 'Site E-2 · Preliminary massing', storeys: 6, height: '23.8 m', allocated: 9053, site: 7031, ground: 2632, upper: 6420, outside: 4398 },
+};
+
+const TOOL_ITEMS = [
+  ['Select', 'mouse-pointer-2'], ['Extrude', 'move-up'], ['Bend', 'corner-up-right'], ['Chamfer', 'ruler'],
+  ['Subtract', 'square-minus'], ['Offset', 'move-3d'], ['Clip', 'scissors'], ['Merge', 'combine'],
+];
 
 export function MassingStudio() {
-  const [option, setOption] = useState('M4');
+  const [option, setOption] = useState('C');
   const [context, setContext] = useState(true);
-  const [contextLayer, setContextLayer] = useState('Map');
   const [tool, setTool] = useState('Select');
-  const [camera, setCamera] = useState('Perspective');
   const [sourceOpen, setSourceOpen] = useState(false);
   const [sourceFile, setSourceFile] = useState('site_design_geo_OPT-C.json');
-  const [modelLayers, setModelLayers] = useState({ Structure: true, Envelope: true, Landscape: true, 'Access / EVA': true });
   const [shadows, setShadows] = useState(true);
   const [levels, setLevels] = useState(6);
-  const [orbit, setOrbit] = useState({ x: 12, y: -16, scale: 1 });
-  const dragRef = useRef(null);
+  const [representation, setRepresentation] = useState('3D');
+  const [viewRevision, setViewRevision] = useState(0);
+  const [selectedMass, setSelectedMass] = useState(null);
+  const [edits, setEdits] = useState({});
   const navigate = useNavigate();
   const toast = useToast();
-  const current = MASSING_OPTIONS[option];
-  const toggleLayer = name => setModelLayers(layers => ({ ...layers, [name]: !layers[name] }));
-  const massingTransform = camera === 'Top' ? `rotateX(64deg) rotateZ(${orbit.y}deg) scale(${orbit.scale})` : camera === 'Front' ? `rotateX(3deg) rotateZ(${orbit.y}deg) scale(${orbit.scale})` : `rotateX(${orbit.x}deg) rotateZ(${orbit.y}deg) scale(${orbit.scale})`;
-  const handlePointerDown = event => { if (event.button !== 0) return; event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { x: event.clientX, y: event.clientY, orbit }; };
-  const handlePointerMove = event => { if (!dragRef.current) return; const start = dragRef.current; setOrbit(currentOrbit => ({ ...currentOrbit, x: Math.max(-12, Math.min(72, start.orbit.x + (event.clientY - start.y) * .25)), y: start.orbit.y + (event.clientX - start.x) * .3 })); };
-  const handleWheel = event => { event.preventDefault(); setOrbit(currentOrbit => ({ ...currentOrbit, scale: Math.max(.65, Math.min(1.45, currentOrbit.scale - event.deltaY * .001)) })); };
- return <StudioFrame active="massing"><div className="studio-content massing-content"><div className="studio-canvas-wrap"><div className="canvas-toolbar"><label>Design option<select value={option} onChange={event => { setOption(event.target.value); toast(`${event.target.value} geometry loaded`); }}><option value="M1">M1 · L-shaped</option><option value="M2">M2 · Parallel wings</option><option value="M3">M3 · Split courtyard</option><option value="M4">M4 · Courtyard</option></select></label><button className="source-button" onClick={() => setSourceOpen(true)}><Icon name="box" />{sourceFile}</button><button onClick={() => { setContext(value => !value); toast(context ? 'Site context hidden' : 'Site context shown'); }} className={context ? 'active' : ''}><Icon name="eye" />{context ? 'Context on' : 'Context off'}</button><SiteContextPills value={contextLayer} onChange={name => { setContextLayer(name); setContext(true); toast(`${name} context selected`); }} /><button onClick={() => { if (downloadSvg('.massing-model-svg', 'massing-study.svg')) toast('Massing SVG downloaded'); }}><Icon name="download" />Download</button></div><div className={`massing-stage camera-${camera.toLowerCase()} ${context ? '' : 'context-hidden'} ${shadows ? '' : 'shadows-off'}`} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={() => { dragRef.current = null; }} onPointerCancel={() => { dragRef.current = null; }} onWheel={handleWheel}><div className="massing-3d-label">{current.title}<small>Architecture & landscape study · {camera} view · drag to orbit · scroll to zoom</small></div><MassingVisual option={option} context={context} style={{ transform: massingTransform }} visibleLayers={modelLayers} visibleLevels={levels} shadows={shadows} /><div className="massing-controls" role="toolbar" aria-label="Massing editing operations">{MASSING_TOOLS.map(name => <button key={name} onClick={() => { setTool(name); toast(`${name} tool selected`); }} className={tool === name ? 'active' : ''} title={name}>{name.slice(0, 1)}</button>)}</div><div className="camera-controls" role="toolbar" aria-label="Massing camera"><span>View</span>{['Perspective', 'Top', 'Front'].map(name => <button key={name} className={camera === name ? 'active' : ''} onClick={() => setCamera(name)}>{name}</button>)}</div><button className="reset-view" onClick={() => { setCamera('Perspective'); setTool('Select'); setContextLayer('Map'); setOrbit({ x: 12, y: -16, scale: 1 }); toast('3D view reset'); }}><Icon name="refresh" />Reset view</button>{context && <div className="site-context-note">{contextLayer} context · indicative site boundary · provisional north</div>}<div className="stage-north">N<br /><b>↑</b><small>provisional</small></div></div><div className="canvas-caption"><b>{option} · {current.title}</b><span>Illustrative BIM massing study · {tool} tool · {levels} storeys · {Object.values(modelLayers).filter(Boolean).length} model layers visible</span></div></div><aside className="studio-inspector"><div className="inspector-head"><p className="eyebrow">Massing overview</p><h2>{current.title}</h2><p>{current.descriptor}</p></div><div className="massing-metrics"><span><small>Storeys</small><b>{current.storeys}</b></span><span><small>Ground footprint</small><b>{current.ground.toLocaleString()} m²</b></span><span><small>Total GFA</small><b>{(current.ground + current.upper).toLocaleString()} m²</b></span><span><small>Open space</small><b>{current.open.toLocaleString()} m²</b></span></div><div className="model-layer-list"><div className="inspector-section-head"><h3>Model layers</h3><small>{Object.values(modelLayers).filter(Boolean).length}/4 visible</small></div>{Object.keys(modelLayers).map(name => <label key={name}><input type="checkbox" checked={modelLayers[name]} onChange={() => toggleLayer(name)} /><span>{name}</span></label>)}</div><div className="massing-config"><label><input type="checkbox" checked={shadows} onChange={event => setShadows(event.target.checked)} /> Cast shadows</label><label><span>Storeys <b>{levels}</b></span><input type="range" min="1" max="6" value={levels} onChange={event => setLevels(Number(event.target.value))} /></label></div><div className="inspector-section"><h3>Review notes</h3><p>Boundary and gate centre points are retained assumptions. Dimensions and connections require confirmation before the next design gate.</p></div><button className="secondary-btn full-btn" onClick={() => setSourceOpen(true)}><Icon name="file" />View BIM evidence</button><button className="primary-btn full-btn" onClick={() => navigate('/reports?report=massing')}>Review decision report <Icon name="arrow" /></button></aside></div><ModelSourcePanel files={MODEL_FILES} current={sourceFile} onSelect={setSourceFile} open={sourceOpen} onClose={() => setSourceOpen(false)} /></StudioFrame>;
+  const { data: studioModel, loading, error, reload } = useStudioModel('e2', option);
+  const hasCurrentOption = studioModel?.option?.id === `OPT-${option}`;
+  const current = hasCurrentOption ? studioModel.massing.summary : STUDIO_OPTIONS[option];
+  const allocation = (current.ground / current.site * 100).toFixed(1);
+  const resetView = () => {
+    setTool('Select');
+    setRepresentation('3D');
+    setLevels(6);
+    setSelectedMass(null);
+    setEdits({});
+    setViewRevision(value => value + 1);
+    toast('Massing view reset');
+  };
+  const chooseOption = next => {
+    setOption(next);
+    setSourceFile(`site_design_geo_OPT-${next}.json`);
+    setSelectedMass(null);
+    setEdits({});
+    setViewRevision(value => value + 1);
+    toast(`OPT-${next} geometry loaded`);
+  };
+  const chooseTool = name => {
+    setTool(name);
+    toast(name === 'Select' ? 'Select a mass to inspect it' : `${name}: click a mass to apply`);
+  };
+  const exportImage = () => {
+    const canvas = document.querySelector('.massing-prototype .three-massing-viewport canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = `site-massing-opt-${option}.png`;
+    link.click();
+    toast('Massing image downloaded');
+  };
+  const onMassPick = useCallback((mass, activeTool) => {
+    setSelectedMass(mass);
+    if (activeTool === 'Select') return;
+    setEdits(currentEdits => ({ ...currentEdits, [mass.id]: { type: activeTool } }));
+    toast(`${activeTool} applied to ${mass.label}`);
+  }, [toast]);
+  const effectiveCamera = representation === 'Plan' ? 'Top' : representation === 'Front' ? 'Front' : 'Perspective';
+
+  return <StudioFrame active="massing">
+    <div className="studio-content massing-content massing-prototype">
+      <div className="studio-canvas-wrap">
+        <div className="canvas-toolbar massing-option-bar">
+          <label>Design option<select value={option} onChange={event => chooseOption(event.target.value)}><option value="A">OPT-A · L-shaped</option><option value="B">OPT-B · Parallel wings</option><option value="C">OPT-C · U-shaped</option></select></label>
+          <button type="button" className="massing-toolbar-reset" title="Reset massing view" aria-label="Reset massing view" onClick={resetView}><Icon name="rotate-ccw" /></button>
+        </div>
+        <div className={`massing-stage ${context ? '' : 'context-hidden'} ${shadows ? '' : 'shadows-off'}`}>
+          {loading && <div className="studio-data-state">Loading massing model…</div>}
+          {error && <div className="studio-data-state error">Unable to load the massing model.<button type="button" onClick={reload}>Retry</button></div>}
+          {hasCurrentOption && <ThreeMassingViewport site={studioModel.massing.site} context={context} visibleLevels={levels} shadows={shadows} representation={representation} cameraMode={effectiveCamera} resetKey={viewRevision} activeTool={tool} selectedMassId={selectedMass?.id} edits={edits} onMassPick={onMassPick} />}
+          <div className="massing-controls" role="toolbar" aria-label="Massing operations">{TOOL_ITEMS.map(([name, icon]) => <button type="button" key={name} onClick={() => chooseTool(name)} className={tool === name ? 'active' : ''} title={name} aria-label={name}><Icon name={icon} /></button>)}</div>
+          {context && <div className="site-context-note">Map context · indicative site boundary · provisional north</div>}
+          <div className="stage-north">N<b>↑</b><small>provisional</small></div>
+          <div className="massing-operation-status"><b>{tool}</b>{selectedMass ? ` · ${selectedMass.label}` : tool === 'Select' ? ' · click a mass to select' : ' · click a mass to apply'}</div>
+        </div>
+      </div>
+      <aside className="studio-inspector">
+        <div className="inspector-head"><p className="eyebrow">Massing overview</p><h2>{current.title}</h2><p>{current.descriptor}</p></div>
+        <div className="massing-metrics"><span><small>Storeys</small><b>{current.storeys}</b></span><span><small>Floor-stack height</small><b>{current.height}</b></span><span><small>Allocated space area / m²</small><b>{current.allocated.toLocaleString()}</b></span><span><small>Ground allocation / site</small><b>{allocation}%</b></span></div>
+        <section className="area-balance"><h3>Area balance</h3><i><b style={{ width: `${allocation}%` }} /></i><div><span>Site area</span><b>{current.site.toLocaleString()} m²</b><span>Ground space allocation</span><b>{current.ground.toLocaleString()} m²</b><span>Upper space allocation</span><b>{current.upper.toLocaleString()} m²</b><span>Outside ground allocation</span><b>{current.outside.toLocaleString()} m²</b></div></section>
+        <section className="programme-key"><h3>Programme</h3><div><span><i className="learning" />Learning</span><span><i className="community" />Community</span><span><i className="administration" />Administration</span><span><i className="circulation" />Circulation</span><span><i className="service" />Service</span><span><i className="play" />Play areas</span></div></section>
+        <section className="massing-config"><h3>Model layers</h3><label><input type="checkbox" checked={context} onChange={event => setContext(event.target.checked)} /> Surrounding context</label><label><input type="checkbox" checked={shadows} onChange={event => setShadows(event.target.checked)} /> Cast shadows</label><label><span>Visible levels <b>{levels === 6 ? 'G + 5' : `G + ${levels - 1}`}</b></span><input type="range" min="1" max="6" value={levels} onChange={event => setLevels(Number(event.target.value))} /></label></section>
+        <div className="representation-toggle">{['3D', 'Plan', 'Front'].map(name => <button type="button" key={name} className={representation === name ? 'active' : ''} onClick={() => setRepresentation(name)}>{name}</button>)}<button type="button" title="Export image" aria-label="Export image" onClick={exportImage}><Icon name="download" /></button></div>
+        <div className="inspector-section"><h3>Design assumptions</h3><p>Reference programme: 5,773 m² NOFA. Project target: 11,503 m² GFA. Allocation is not statutory GFA or verified coverage.</p></div>
+        <button className="secondary-btn full-btn" onClick={() => setSourceOpen(true)}><Icon name="file" />View BIM evidence</button>
+        <button className="primary-btn full-btn" onClick={() => navigate('/reports?report=massing')}>Review decision report <Icon name="arrow" /></button>
+      </aside>
+    </div>
+    <ModelSourcePanel files={MODEL_FILES} current={sourceFile} onSelect={setSourceFile} open={sourceOpen} onClose={() => setSourceOpen(false)} />
+  </StudioFrame>;
 }
